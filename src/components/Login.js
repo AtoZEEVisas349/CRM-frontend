@@ -1,35 +1,52 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "../styles/styles.css";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Retrieve user data from localStorage (for now, will be replaced by API call)
-    const storedUser = JSON.parse(localStorage.getItem(email));
-
-    if (!storedUser) {
-      alert("User not found! Please sign up.");
+    if (!email || !password) {
+      setError("All fields are required!");
       return;
     }
 
-    if (storedUser.password === password) {
-      alert("Login successful! Redirecting to dashboard...");
-      localStorage.setItem("loggedInUser", email);
-      navigate("/dashboard"); // Change path as needed
-    } else {
-      alert("Incorrect password! Try again.");
+    try {
+      setLoading(true);
+      const response = await axios.post("http://localhost:5000/api/login", {
+        email,
+        password,
+      });
+
+      if (response.data.success) {
+        localStorage.setItem("token", response.data.token);
+        toast.success("Login successful! Redirecting...", { className: "toast-success" });
+        setTimeout(() => navigate("/dashboard"), 2000);
+      } else {
+        toast.error(response.data.message || "Login failed!", { className: "toast-error" });
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "⚠️ An error occurred during login.", {
+        className: "toast-error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="container">
-        <div className="background-box-1"></div>
+      <ToastContainer position="top-right" autoClose={3000} toastClassName="toast-success" />
+      <div className="background-box-1"></div>
       <div className="background-box-2"></div>
 
       <div className="form-container">
@@ -43,7 +60,7 @@ const Login = () => {
 
         <div className="right-box">
           <h2>Welcome Back</h2>
-          <p>Please log in to continue</p>
+          
           <form onSubmit={handleLogin}>
             <input
               type="email"
@@ -59,11 +76,14 @@ const Login = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button type="submit">LOGIN</button>
+         
+            <button type="submit" disabled={loading}>
+              {loading ? "Logging in..." : "LOGIN"}
+            </button>
+            <p className="link">
+            <a href="/forgot-password" className="forgot-password-link">Forgot Password?</a>
+           </p>
           </form>
-          <p className="forgot-password">
-            <a href="#">Forgot Password?</a>
-          </p>
         </div>
       </div>
     </div>
